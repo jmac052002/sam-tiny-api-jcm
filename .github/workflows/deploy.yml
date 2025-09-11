@@ -1,0 +1,62 @@
+name: CI/CD - SAM backend + S3 frontend
+
+on:
+  push:
+    branches: [ "main" ]   # runs when you push to main
+  workflow_dispatch: {}    # allows manual run in Actions tab
+
+permissions:
+  id-token: write          # required for OIDC
+  contents: read
+
+concurrency:
+  group: sam-tiny-api
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install SAM CLI + AWS CLI
+        run: |
+          pip install aws-sam-cli
+          python -m pip install --upgrade awscli
+
+      - name: Configure AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::584996267165:role/GitHubActions-SAM-Deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Who am I? (debug)
+        run: aws sts get-caller-identity
+
+      # ---- Backend (SAM) ----
+      - name: SAM Build
+        run: sam build --cached || sam build
+
+      - name: SAM Deploy
+        run: sam deploy --no-fail-on-empty-changeset
+
+      # ---- Frontend (S3) ----
+      - name: Upload index.html to S3
+        run: |
+          aws s3 cp index.html s3://sam-tiny-frontend-6637/index.html \
+            --cache-control "no-cache"
+
+      # (Optional) If you later add more frontend assets, replace with:
+      # - name: Sync frontend directory
+      #   run: aws s3 sync ./frontend s3://sam-tiny-frontend-6637/ --delete --cache-control "public,max-age=300"
+
