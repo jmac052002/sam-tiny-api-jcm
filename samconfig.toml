@@ -1,0 +1,9 @@
+cat > samconfig.toml <<'TOML'
+version = 0.1
+[default.deploy.parameters]
+stack_name = "sam-tiny-api"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+TOML
+
