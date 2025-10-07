@@ -1,0 +1,14 @@
+version = 0.1
+
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "sam-tiny-api-jcm"
+s3_bucket = "sam-tiny-api-jcm-artifacts"
+s3_prefix = "sam-tiny-api-jcm"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+fail_on_empty_changeset = false
+image_repositories = []
+
