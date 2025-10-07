@@ -1,62 +1,42 @@
-cat > template.yaml <<'YAML'
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Tiny Serverless TODO API (Lambda + HTTP API + DynamoDB)
+Description: Serverless TODO API (Lambda + HTTP API + DynamoDB)
 
 Globals:
   Function:
-    Runtime: python3.11
+    Runtime: python3.12
     Timeout: 10
-    MemorySize: 256
-
-Parameters:
-  TableName:
-    Type: String
-    Default: TodosTable
+    MemorySize: 128
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref TodosTable
 
 Resources:
-  ApiFunction:
+  TodoFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .
       Handler: app.handler
+      # Runtime/Architecture inherited from Globals
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref TableName
+            TableName: !Ref TodosTable
       Environment:
         Variables:
-          TABLE_NAME: !Ref TableName
-      Events:
-        GetItems:
-          Type: HttpApi
-          Properties:
-            Path: /items
-            Method: GET
-        CreateItem:
-          Type: HttpApi
-          Properties:
-            Path: /items
-            Method: POST
-        UpdateItem:
-          Type: HttpApi
-          Properties:
-            Path: /items/{id}
-            Method: PUT
-        DeleteItem:
-          Type: HttpApi
-          Properties:
-            Path: /items/{id}
-            Method: DELETE
-        Health:
-          Type: HttpApi
-          Properties:
-            Path: /health
-            Method: GET
+          TABLE_NAME: !Ref TodosTable
 
   TodosTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Ref TableName
+      TableName: !Sub "${AWS::StackName}-todos"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: id
@@ -69,5 +49,7 @@ Outputs:
   ApiUrl:
     Description: Base URL for the HTTP API
     Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
-YAML
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref TodosTable
 
